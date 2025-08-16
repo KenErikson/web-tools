@@ -1,0 +1,163 @@
+﻿@page "/notes"
+
+
+@inject BrowserStorageService BrowserStorage
+@inject IJSRuntime JSRuntime
+
+<h3>Notes</h3>
+
+<div class="row vh-100">
+
+    <div class="col-md-8 p-4">
+        @if (selectedNote != null)
+        {
+            <h3>Editing Note</h3>
+            <div class="form-group mb-3">
+                <label for="noteTitle" class="form-label">Title</label>
+                <input id="noteTitle" type="text" class="form-control" @bind="ActiveNoteTitle" @bind:event="oninput" />
+            </div>
+            <div class="form-group">
+                <label for="noteContent" class="form-label">Content</label>
+                <textarea id="noteContent" class="form-control" style="height: 60vh;" @bind="ActiveNoteContent" @bind:event="oninput"></textarea>
+            </div>
+            <small class="text-muted">Last modified: @selectedNote.LastModified.ToLocalTime()</small>
+        }
+        else
+        {
+            <div class="d-flex align-items-center justify-content-center h-100">
+                <div class="text-center">
+                    <h4>Select a note to view or create a new one.</h4>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-md-4 bg-light border-start p-3">
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary" @onclick="AddNewNote">
+                + New Note
+            </button>
+        </div>
+        <hr />
+        <ul class="list-group">
+            @foreach (var note in allNotes.OrderByDescending(n => n.LastModified))
+            {
+                <li class="list-group-item list-group-item-action @(note.Id == selectedNote?.Id ? "active" : "")" 
+                    @onclick="() => SelectNote(note)" style="cursor:pointer;">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">@note.Title</h5>
+                        <button class="btn-close btn-sm" @onclick="() => DeleteNote(note)" @onclick:stopPropagation="true" title="Delete Note"></button>
+                    </div>
+                    <small>@GetContentSnippet(note.Content)</small>
+                </li>
+            }
+        </ul>
+    </div>
+</div>
+
+@code {
+    private const string StorageKey = "blazor_notes_app";
+    private List<Note> allNotes = new();
+    private Note? selectedNote;
+
+    // --- Lifecycle ---
+    protected override async Task OnInitializedAsync()
+    {
+        var loadedNotes = await BrowserStorage.GetAsync<List<Note>>(StorageKey);
+
+        // Check if any notes were loaded
+        if (loadedNotes == null || !loadedNotes.Any())
+        {
+            // If no notes exist, create a default one and select it
+            allNotes = new List<Note>();
+            var defaultNote = new Note { Title = "New Note", Content = "" };
+            allNotes.Add(defaultNote);
+            selectedNote = defaultNote;
+            await SaveNotesAsync(); // Save the new note to storage
+        }
+        else
+        {
+            // If notes exist, pre-select the one with the latest LastModified date
+            allNotes = loadedNotes;
+            selectedNote = allNotes.OrderByDescending(n => n.LastModified).FirstOrDefault();
+        }
+    }
+
+    // --- Note Management ---
+    private async Task AddNewNote()
+    {
+        var newNote = new Note { Title = "New Note", Content = "" };
+        allNotes.Add(newNote);
+        SelectNote(newNote);
+        await SaveNotesAsync();
+    }
+
+    private void SelectNote(Note note)
+    {
+        selectedNote = note;
+    }
+
+    private async Task DeleteNote(Note noteToDelete)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Are you sure you want to delete '{noteToDelete.Title}'?");
+        if (confirmed)
+        {
+            allNotes.Remove(noteToDelete);
+            if (selectedNote?.Id == noteToDelete.Id)
+            {
+                selectedNote = null;
+            }
+            await SaveNotesAsync();
+        }
+    }
+
+    private async Task SaveNotesAsync()
+    {
+        await BrowserStorage.SetAsync(StorageKey, allNotes);
+    }
+
+    // --- UI Helpers ---
+    private string GetContentSnippet(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content)) return "No content";
+        return content.Length > 50 ? content[..50] + "..." : content;
+    }
+    
+    // --- Properties for Auto-Saving ---
+    private string ActiveNoteTitle
+    {
+        get => selectedNote?.Title ?? "";
+        set
+        {
+            if (selectedNote != null && selectedNote.Title != value)
+            {
+                selectedNote.Title = value;
+                selectedNote.LastModified = DateTime.UtcNow;
+                _ = SaveNotesAsync();
+            }
+        }
+    }
+
+    private string ActiveNoteContent
+    {
+        get => selectedNote?.Content ?? "";
+        set
+        {
+            if (selectedNote != null && selectedNote.Content != value)
+            {
+                selectedNote.Content = value;
+                selectedNote.LastModified = DateTime.UtcNow;
+                _ = SaveNotesAsync();
+            }
+        }
+    }
+
+    // --- Data Model ---
+    public class Note
+    {
+        public Guid Id { get; set; } = Guid.NewGuid();
+        public string Title { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
+        public DateTime LastModified { get; set; } = DateTime.UtcNow;
+    }
+}

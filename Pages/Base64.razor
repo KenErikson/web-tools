@@ -1,0 +1,67 @@
+﻿@page "/base64"
+@using System.Text
+
+<h3>Base64</h3>
+
+<h5 class="mt-4">Encode</h5>
+<textarea id="inputEncode" class="form-control mt-2" @bind="InputEncode" @bind:event="oninput" rows="4" placeholder="Encode input..."></textarea>
+<textarea readonly disabled id="outputEncode" class="form-control mt-2 bg-light" rows="4" placeholder="Encode output...">@outputEncode</textarea>
+
+<h5 class="mt-4">Decode</h5>
+<textarea id="inputDecode" class="form-control mt-2" @bind="InputDecode" @bind:event="oninput" rows="4" placeholder="Decode input..."></textarea>
+<textarea readonly disabled id="outputDecode" class="form-control mt-2" rows="4" placeholder="Decode output...">@outputDecode</textarea>
+
+@code {
+    private string? _inputEncode;
+    private string? outputEncode;
+
+    private string? _inputDecode;
+    private string? outputDecode;
+
+    public string? InputEncode
+    {
+        get => _inputEncode;
+        set
+        {
+            _inputEncode = value; // Update the backing field
+            
+            // Now, run the encoding logic immediately
+            if (string.IsNullOrEmpty(_inputEncode))
+            {
+                outputEncode = "";
+                return;
+            }
+            byte[] textAsBytes = Encoding.UTF8.GetBytes(_inputEncode);
+            outputEncode = Convert.ToBase64String(textAsBytes);
+        }
+    }
+
+    public string? InputDecode
+    {
+        get => _inputDecode;
+        set
+        {
+            _inputDecode = value;
+
+            if (string.IsNullOrEmpty(_inputDecode))
+            {
+                outputDecode = "";
+                return;
+            }
+
+            try
+            {
+                byte[] bytesFromBase64 = Convert.FromBase64String(_inputDecode);
+                outputDecode = Encoding.UTF8.GetString(bytesFromBase64);
+            }
+            catch (FormatException)
+            {
+                outputDecode = "Invalid Base64 string...";
+            }
+            catch (Exception ex)
+            {
+                outputDecode = $"An error occurred: {ex.Message}";
+            }
+        }
+    }
+}

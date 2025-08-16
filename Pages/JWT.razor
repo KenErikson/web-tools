@@ -1,0 +1,253 @@
+﻿@page "/jwt"
+@using System.Text
+@using System.Text.Json
+@using System.Security.Cryptography
+@inject IJSRuntime JSRuntime
+
+<h3>JWT</h3>
+
+<h5>Decoder</h5>
+
+<div class="my-3">
+    <textarea @bind="JwtToken" @bind:event="oninput"
+              class="form-control" style="font-family: monospace;" rows="6"
+              placeholder="Paste a JWT to decode it..."></textarea>
+</div>
+<h5 class="mt-4 mb-2">Payload</h5>
+@if (!string.IsNullOrEmpty(PrettyPayloadJson))
+{
+    <div class="position-relative">
+        <pre class="form-control" style="font-family: monospace;" rows="10" readonly>@PrettyPayloadJson</pre>
+        <button @onclick="CopyToClipboardDecoder" class="btn btn-sm btn-outline-secondary" title="Copy to clipboard"
+                style="position: absolute; top: 0.5rem; right: 0.5rem;">
+            @if (_decoderCopied)
+            {
+                <span aria-hidden="true">Copied</span>
+            }
+            else
+            {
+                <span aria-hidden="true">Copy</span>
+            }
+        </button>
+    </div>
+}
+else if (!string.IsNullOrEmpty(DecoderErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @DecoderErrorMessage
+    </div>
+}
+
+<hr class="my-5" />
+
+<h5>Encoder</h5>
+
+<div class="row">
+    <div class="col-md-8">
+        <label for="encoderPayload" class="form-label">Payload (JSON)</label>
+        <textarea id="encoderPayload" @bind="EncoderPayloadJson" @bind:event="oninput"
+                  class="form-control" style="font-family: monospace;" rows="8"></textarea>
+    </div>
+    <div class="col-md-4">
+        <label for="secretKey" class="form-label">HMAC-SHA256 Secret</label>
+        <input type="text" id="secretKey" @bind="SecretKey" @bind:event="oninput"
+               class="form-control" style="font-family: monospace;" />
+    </div>
+</div>
+
+<h5 class="mt-4 mb-2">Generated JWT</h5>
+@if (!string.IsNullOrEmpty(GeneratedJwt))
+{
+    <div class="position-relative mt-3">
+        <textarea class="form-control" style="font-family: monospace;" rows="6" readonly>@GeneratedJwt</textarea>
+        <button @onclick="CopyToClipboardEncoder" class="btn btn-sm btn-outline-secondary" title="Copy to clipboard"
+                style="position: absolute; top: 0.5rem; right: 0.5rem;">
+            @if (_encoderCopied)
+            {
+                <span aria-hidden="true">Copied</span>
+            }
+            else
+            {
+                <span aria-hidden="true">Copy</span>
+            }
+        </button>
+    </div>
+}
+else if (!string.IsNullOrEmpty(EncoderErrorMessage))
+{
+    <div class="alert alert-danger mt-3" role="alert">
+        @EncoderErrorMessage
+    </div>
+}
+
+
+@code {
+    // No changes were made to the C# code block.
+    // It remains exactly the same as before.
+
+    // ================== DECODER STATE ==================
+    private string? _jwtToken;
+    private string? DecoderErrorMessage { get; set; }
+    private string? PrettyPayloadJson { get; set; }
+    private bool _decoderCopied = false;
+
+    public string? JwtToken
+    {
+        get => _jwtToken;
+        set
+        {
+            _jwtToken = value;
+            ParseToken();
+        }
+    }
+
+    // ================== ENCODER STATE ==================
+    private string? _encoderPayloadJson;
+    private string? _secretKey = "your-super-secret-key";
+    private string? EncoderErrorMessage { get; set; }
+    private string? GeneratedJwt { get; set; }
+    private bool _encoderCopied = false;
+
+    public string? EncoderPayloadJson
+    {
+        get => _encoderPayloadJson;
+        set
+        {
+            _encoderPayloadJson = value;
+            EncodeToken();
+        }
+    }
+
+    public string? SecretKey
+    {
+        get => _secretKey;
+        set
+        {
+            _secretKey = value;
+            EncodeToken();
+        }
+    }
+
+    // ================== LIFECYCLE ==================
+    protected override void OnInitialized()
+    {
+        // Set initial values and trigger both parsing and encoding
+        _jwtToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+        ParseToken();
+
+        // When the decoder runs, use its output as the initial input for the encoder
+        _encoderPayloadJson = PrettyPayloadJson;
+        EncodeToken();
+    }
+
+    // ================== DECODER LOGIC ==================
+    private async Task CopyToClipboardDecoder()
+    {
+        if (!string.IsNullOrEmpty(PrettyPayloadJson))
+        {
+            await JSRuntime.InvokeVoidAsync("copyTextToClipboard", PrettyPayloadJson);
+            _decoderCopied = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            _decoderCopied = false;
+        }
+    }
+
+    private void ParseToken()
+    {
+        PrettyPayloadJson = null;
+        DecoderErrorMessage = null;
+        if (string.IsNullOrWhiteSpace(_jwtToken)) return;
+        try
+        {
+            var segments = _jwtToken.Split('.');
+            if (segments.Length != 3)
+            {
+                DecoderErrorMessage = "Invalid JWT: The token must have 3 parts separated by dots.";
+                return;
+            }
+            string payloadJson = DecodeBase64Url(segments[1]);
+            using var jsonDoc = JsonDocument.Parse(payloadJson);
+            PrettyPayloadJson = JsonSerializer.Serialize(jsonDoc.RootElement, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            DecoderErrorMessage = $"Error parsing token: {ex.Message}";
+        }
+    }
+
+    // ================== ENCODER LOGIC ==================
+    private async Task CopyToClipboardEncoder()
+    {
+        if (!string.IsNullOrEmpty(GeneratedJwt))
+        {
+            await JSRuntime.InvokeVoidAsync("copyTextToClipboard", GeneratedJwt);
+            _encoderCopied = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            _encoderCopied = false;
+        }
+    }
+
+    private void EncodeToken()
+    {
+        GeneratedJwt = null;
+        EncoderErrorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(_encoderPayloadJson) || string.IsNullOrWhiteSpace(_secretKey))
+        {
+            return;
+        }
+
+        try
+        {
+            // Validate the payload is valid JSON before proceeding
+            using (JsonDocument.Parse(_encoderPayloadJson)) { }
+
+            // 1. Header
+            var header = new { alg = "HS256", typ = "JWT" };
+            var headerJson = JsonSerializer.Serialize(header);
+            var encodedHeader = EncodeBase64Url(Encoding.UTF8.GetBytes(headerJson));
+
+            // 2. Payload
+            var encodedPayload = EncodeBase64Url(Encoding.UTF8.GetBytes(_encoderPayloadJson));
+
+            // 3. Signature
+            var unsignedToken = $"{encodedHeader}.{encodedPayload}";
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_secretKey));
+            var signatureBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(unsignedToken));
+            var encodedSignature = EncodeBase64Url(signatureBytes);
+
+            GeneratedJwt = $"{unsignedToken}.{encodedSignature}";
+        }
+        catch (JsonException ex)
+        {
+            EncoderErrorMessage = $"Invalid Payload JSON: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            EncoderErrorMessage = $"Error encoding token: {ex.Message}";
+        }
+    }
+
+
+    // ================== UTILITY METHODS ==================
+    private string DecodeBase64Url(string input)
+    {
+        string output = input.Replace('-', '+').Replace('_', '/');
+        switch (output.Length % 4)
+        {
+            case 2: output += "=="; break;
+            case 3: output += "="; break;
+        }
+        return Encoding.UTF8.GetString(Convert.FromBase64String(output));
+    }
+
+    private string EncodeBase64Url(byte[] input)
+    {
+        return Convert.ToBase64String(input)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+}

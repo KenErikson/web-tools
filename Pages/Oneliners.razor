@@ -1,0 +1,187 @@
+﻿@page "/"
+@page "/oneliners"
+
+<h3>Helpful Oneliners</h3>
+
+@if (categories is not null)
+{
+    foreach (var category in categories)
+    {
+        <hr />
+        <h4>@category.Name</h4>
+        <ul>
+            @foreach (var oneliner in category.OneLiners)
+            {
+                <li>
+                    <p><strong>@oneliner.Title</strong></p>
+                    
+                    @oneliner.CommandBlock
+
+                    <p class="small text-muted">@((MarkupString)oneliner.Explanation)</p>
+                </li>
+            }
+        </ul>
+    }
+}
+
+
+@code {
+    private List<OneLinerCategory> categories = new();
+
+    // Define the data models for our one-liners
+    public class OneLinerCategory
+    {
+        public string Name { get; set; } = "";
+        public List<OneLiner> OneLiners { get; set; } = new();
+    }
+
+    public class OneLiner
+    {
+        public string Title { get; set; } = "";
+        public MarkupString CommandBlock { get; set; }
+        public string Explanation { get; set; } = "";
+    }
+
+    // This method runs when the component is initialized
+    protected override void OnInitialized()
+    {
+        categories = new List<OneLinerCategory>
+        {
+            new()
+            {
+                Name = "File & Directory Management",
+                OneLiners = new List<OneLiner>
+                {
+                    new() {
+                        Title = "Find and delete all files with a specific extension (e.g., .log):",
+                        CommandBlock = new MarkupString("<code>find . -type f -name \"*.log\" -delete</code>"),
+                        Explanation = "Searches the current directory (<code>.</code>) and subdirectories for files (<code>-type f</code>) matching the name <code>*.log</code> and deletes them."
+                    },
+                    new() {
+                        Title = "Show the largest files and directories in the current location:",
+                        CommandBlock = new MarkupString("<code>du -sh * | sort -hr</code>"),
+                        Explanation = "<code>du -sh *</code> calculates the size of each item in a human-readable format. <code>sort -hr</code> sorts the output in reverse (largest first) human-readable order."
+                    },
+                    new() {
+                        Title = "Create a nested directory structure in one command:",
+                        CommandBlock = new MarkupString("<code>mkdir -p project/src/components</code>"),
+                        Explanation = "The <code>-p</code> flag creates parent directories as needed, so you don't have to create `project` and `src` first."
+                    },
+                    new() {
+                        Title = "Find all files modified in the last 7 days:",
+                        CommandBlock = new MarkupString("<code>find . -type f -mtime -7</code>"),
+                        Explanation = "Useful for finding recently changed files for backups or review."
+                    }
+                }
+            },
+            new()
+            {
+                Name = "Text Processing",
+                OneLiners = new List<OneLiner>
+                {
+                    new() {
+                        Title = "Recursively search for a string in all files:",
+                        CommandBlock = new MarkupString("<code>grep -ri \"database_connection\" .</code>"),
+                        Explanation = "<code>-r</code> for recursive, <code>-i</code> for case-insensitive. Searches for the string in all files in the current directory (<code>.</code>) and below."
+                    },
+                    new() {
+                        Title = "Count and sort the unique lines in a file:",
+                        CommandBlock = new MarkupString("<code>sort access.log | uniq -c | sort -nr</code>"),
+                        Explanation = "This chain sorts the file, counts unique lines (<code>uniq -c</code>), and then sorts the result numerically and in reverse (<code>-nr</code>) to show the most frequent lines first. Great for log analysis."
+                    },
+                    new() {
+                        Title = "In-place search and replace with backup:",
+                        CommandBlock = new MarkupString("<code>sed -i.bak 's/old-text/new-text/g' filename.txt</code>"),
+                        Explanation = "The <code>-i.bak</code> flag creates a backup of the original file (e.g., <code>filename.txt.bak</code>) before modifying the file in-place. The <code>g</code> at the end ensures all occurrences on a line are replaced, not just the first."
+                    },
+                    new() {
+                        Title = "Print specific columns from text data:",
+                        CommandBlock = new MarkupString("<code>awk '{print $1, $9}' access.log</code>"),
+                        Explanation = "<code>awk</code> is a powerful text processor. This command prints the 1st and 9th columns of <code>access.log</code>, useful for parsing structured text files."
+                    }
+                }
+            },
+            new()
+            {
+                Name = "System & Process Monitoring",
+                OneLiners = new List<OneLiner>
+                {
+                    new() {
+                        Title = "Find which process is using a specific port (e.g., 8080):",
+                        CommandBlock = new MarkupString("<code>lsof -i :8080</code>"),
+                        Explanation = "<code>lsof</code> lists open files. The <code>-i</code> flag filters by internet address (port). If that's not available, you can try <code>sudo netstat -tulpn | grep :8080</code>."
+                    },
+                    new() {
+                        Title = "Display disk usage in a human-readable format:",
+                        CommandBlock = new MarkupString("<code>df -h</code>"),
+                        Explanation = "Shows free and used space on all mounted filesystems."
+                    },
+                    new() {
+                        Title = "Force kill a process by its name:",
+                        CommandBlock = new MarkupString("<code>kill -9 $(pgrep process_name)</code>"),
+                        Explanation = "<code>pgrep</code> gets the process ID, which is then passed to <code>kill -9</code> to terminate it immediately. Use with caution."
+                    },
+                }
+            },
+            new()
+            {
+                Name = "Networking",
+                OneLiners = new List<OneLiner>
+                {
+                    new() {
+                        Title = "Get your public IP address:",
+                        CommandBlock = new MarkupString("<code>curl ifconfig.me</code>"),
+                        Explanation = "Uses <code>curl</code> to fetch your public IP from an external service and prints it."
+                    },
+                    new() {
+                        Title = "Start a simple web server in the current directory:",
+                        CommandBlock = new MarkupString(
+                            "<p><strong>Python 3:</strong></p>" +
+                            "<code>python3 -m http.server 8000</code>" +
+                            "<p><strong>Python 2:</strong></p>" +
+                            "<code>python -m SimpleHTTPServer 8000</code>"
+                        ),
+                        Explanation = "Instantly serves the files in your current directory over HTTP on a specified port. Great for quick file sharing on a local network. The command differs for Python 3 and Python 2."
+                    },
+                    new() {
+                        Title = "List all listening ports and the processes using them:",
+                        CommandBlock = new MarkupString("<code>ss -tulnp</code>"),
+                        Explanation = "A modern replacement for <code>netstat</code>. Shows TCP (<code>t</code>), UDP (<code>u</code>) listening (<code>l</code>) ports without resolving hostnames (<code>n</code>) and shows the process (<code>p</code>)."
+                    },
+                    new() {
+                        Title = "Execute a command on a remote server without a full shell:",
+                        CommandBlock = new MarkupString("<code>ssh user@host 'uptime && df -h'</code>"),
+                        Explanation = "Logs in, executes the command(s), prints the output, and logs out."
+                    }
+                }
+            },
+            new()
+            {
+                Name = "Shell & History",
+                OneLiners = new List<OneLiner>
+                {
+                    new() {
+                        Title = "Go back to the previous directory:",
+                        CommandBlock = new MarkupString("<code>cd -</code>"),
+                        Explanation = "Swaps between your current and last-visited directory."
+                    },
+                    new() {
+                        Title = "Execute the last command again:",
+                        CommandBlock = new MarkupString("<code>!!</code>"),
+                        Explanation = "Especially useful after a command fails due to a permissions error (e.g., you can type <code>sudo !!</code> to run the previous command with sudo)."
+                    },
+                    new() {
+                        Title = "Search your command history:",
+                        CommandBlock = new MarkupString("<code>history | grep \"docker\"</code>"),
+                        Explanation = "Filters your entire command history for a specific term."
+                    },
+                    new() {
+                        Title = "Interactively search your command history (Shortcut):",
+                        CommandBlock = new MarkupString("<code>(Ctrl + R)</code>"),
+                        Explanation = "Press this key combination and start typing to search your history. Press it again to cycle through matches. Press Enter to execute."
+                    }
+                }
+            }
+        };
+    }
+}

@@ -1,0 +1,42 @@
+﻿@page "/char-count"
+
+<h3>Char Count</h3>
+
+
+<textarea id="input" class="form-control mt-2" @bind="Input" @bind:event="oninput" rows="4"
+    placeholder="Text here..."></textarea>
+
+<p class="form-control mt-2">Char count: <b>@charCount</b></p>
+<p class="form-control mt-2">Word Count: <b>@wordCount</b></p>
+<p class="form-control mt-2">Line Count: <b>@lineCount</b></p>
+
+
+
+
+@code {
+    private string? _input;
+    private int charCount = 0;
+    private int wordCount = 0;
+    private int lineCount = 0;
+
+    public string? Input
+    {
+        get => _input;
+        set
+        {
+            _input = value;
+
+            if (string.IsNullOrEmpty(_input))
+            {
+                charCount = 0;
+                wordCount = 0;
+                lineCount = 0;
+                return;
+            }
+            charCount = _input.Length;
+            char[] delimiters = { ' ', '\n', '\t' };
+            wordCount = _input.Split(delimiters, StringSplitOptions.RemoveEmptyEntries).Length;
+            lineCount = _input.Split("\n").Length;
+        }
+    }
+}

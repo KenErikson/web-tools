@@ -1,0 +1,71 @@
+﻿@page "/json"
+@using System.Text.Json
+
+<h3>JSON Prettifier</h3>
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-6">
+            <h5>Input JSON</h5>
+            <textarea @bind="RawJson" @bind:event="oninput" 
+                      class="form-control" 
+                      rows="20" 
+                      placeholder="Paste your raw JSON here..."></textarea>
+        </div>
+
+        <div class="col-md-6">
+            <h5>Formatted JSON</h5>
+            <textarea class="form-control" rows="20" readonly>@PrettyJson</textarea>
+        </div>
+    </div>
+</div>
+
+@code {
+    // This property holds the result for the output textarea.
+    private string PrettyJson { get; set; } = string.Empty;
+
+    // Backing field for the RawJson property.
+    private string _rawJson = string.Empty;
+
+    /// <summary>
+    /// This property is bound to the input textarea. Its 'set' accessor
+    /// triggers the prettifying logic on every change.
+    /// </summary>
+    private string RawJson
+    {
+        get => _rawJson;
+        set
+        {
+            _rawJson = value;
+            PrettifyJson(); // Trigger formatting whenever the input changes.
+        }
+    }
+
+    /// <summary>
+    /// This method contains the core formatting logic.
+    /// </summary>
+    private void PrettifyJson()
+    {
+        if (string.IsNullOrWhiteSpace(_rawJson))
+        {
+            PrettyJson = string.Empty; // Clear the output if input is empty.
+            return;
+        }
+
+        try
+        {
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true
+            };
+
+            using var jsonDoc = JsonDocument.Parse(_rawJson);
+            PrettyJson = JsonSerializer.Serialize(jsonDoc.RootElement, options);
+        }
+        catch (JsonException ex)
+        {
+            // Display a concise error in the output until the JSON is valid.
+            PrettyJson = $"Error: Invalid JSON... {ex.Message}";
+        }
+    }
+}
