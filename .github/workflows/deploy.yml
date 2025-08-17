@@ -37,8 +37,8 @@ jobs:
       - name: Add .nojekyll file
         run: touch release/wwwroot/.nojekyll
 
-      - name: Create 404.html from index.html
-        run: cp release/wwwroot/index.html release/wwwroot/404.html
+      # - name: Create 404.html from index.html
+      #   run: cp release/wwwroot/index.html release/wwwroot/404.html
 
       # Upload the published artifact
       - name: Upload GitHub Pages artifact

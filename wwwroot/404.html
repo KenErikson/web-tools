@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Redirecting...</title>
+  <script>
+    // Store the path the user tried to access
+    sessionStorage.redirect = location.pathname;
+
+    // Use JavaScript to perform a seamless redirect to the root of the site.
+    // This replaces the meta refresh tag and avoids browser prompts.
+    window.location.replace('/');
+  </script>
+</head>
+<body>
+  <p>If you are not redirected, <a href='/'>click here</a>.</p>
+</body>
+</html>
