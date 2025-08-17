@@ -1,0 +1,143 @@
+﻿@page "/url-encode"
+@using System;
+@using System.Net;
+@inject IJSRuntime JSRuntime
+
+<h3>URL</h3>
+
+<h5>Encode</h5>
+
+<textarea id="encodeInput" class="form-control mt-2" @bind="EncodeInput" @bind:event="oninput" rows="4"
+    placeholder="Enter text to encode..."></textarea>
+<InputCheckbox id="ignore-space" @bind-Value="EncodeIgnoreSpace" class="form-check-input" >Leave spaces</InputCheckbox>
+<label for="ignore-space" class="form-check-label">
+        Leave spaces
+    </label>
+
+<div class="position-relative"> 
+    <button @onclick="CopyToClipboardEncoded" class="btn btn-sm btn-outline-secondary" title="Copy to clipboard"
+                    style="position: absolute; top: 0.5rem; right: 0.5rem;">
+                @if (_encodedCopied)
+                {
+                    <span aria-hidden="true">Copied</span>
+                }
+                else
+                {
+                    <span aria-hidden="true">Copy</span>
+                }
+            </button>
+    <textarea disabled id="encodeOut" class="form-control mt-2" rows="4"
+        placeholder="Encode output...">@encodeOut</textarea>
+</div>
+
+<h5 class="mt-4">Decode</h5>
+
+<div class="mb-3">
+    <textarea id="decodeInput" class="form-control" @bind="DecodeInput" @bind:event="oninput" rows="4"
+              placeholder="Enter text to decode..."></textarea>
+</div>
+
+<div class="position-relative">
+    <button @onclick="CopyToClipboardDecoded" class="btn btn-sm btn-outline-secondary" style="position: absolute; top: 0.5rem; right: 0.5rem;" title="Copy to clipboard">
+        @(_decodedCopied ? "Copied!" : "Copy")
+    </button>
+    <textarea disabled id="decodeOut" class="form-control" rows="4"
+              placeholder="Decoded output...">@decodeOut</textarea>
+</div>
+
+@code {
+    private string? _encodeInput;
+    private bool _encodeIgnoreSpace;
+    private bool _encodedCopied;
+
+    private string? encodeOut;
+
+    private string? _decodeInput;
+    private bool _decodedCopied;
+    private string? decodeOut;
+
+    public string? EncodeInput
+    {
+        get => _encodeInput;
+        set
+        {
+            _encodeInput = value;
+
+            if (string.IsNullOrEmpty(_encodeInput))
+            {
+                encodeOut = "";
+                return;
+            }
+            
+            encodeOut = WebUtility.UrlEncode(_encodeInput);
+            if(_encodeIgnoreSpace){
+                encodeOut = encodeOut.Replace("+", " ");
+            }else{
+                encodeOut = encodeOut.Replace("+", "%20");
+            }
+        }
+    }
+
+        public bool EncodeIgnoreSpace
+    {
+        get => _encodeIgnoreSpace;
+        set
+        {
+            _encodeIgnoreSpace = value;
+            
+            EncodeInput = _encodeInput;
+        }
+    }
+
+    private void updateValue(){
+        EncodeInput = _encodeInput;
+    }
+
+    public string? DecodeInput
+    {
+        get => _decodeInput;
+        set
+        {
+            _decodeInput = value;
+            if (string.IsNullOrEmpty(_decodeInput))
+            {
+                decodeOut = "";
+                return;
+            }
+
+            try
+            {
+                // Attempt to decode the string
+                decodeOut = WebUtility.UrlDecode(_decodeInput);
+            }
+            catch (Exception)
+            {
+                // If decoding fails (e.g., malformed input), show an error.
+                decodeOut = "Error: Invalid input format for URL decoding.";
+            }
+        }
+    }
+
+    private async Task CopyToClipboardEncoded()
+    {
+        if (!string.IsNullOrEmpty(encodeOut))
+        {
+            await JSRuntime.InvokeVoidAsync("copyTextToClipboard", encodeOut);
+            _encodedCopied = true;
+            StateHasChanged();
+            await Task.Delay(2000);
+            _encodedCopied = false;
+        }
+    }
+
+        private async Task CopyToClipboardDecoded()
+    {
+        if (!string.IsNullOrEmpty(decodeOut))
+        {
+            await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", decodeOut);
+            _decodedCopied = true;
+            await Task.Delay(2000);
+            _decodedCopied = false;
+        }
+    }
+}

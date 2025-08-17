@@ -1,4 +1,5 @@
-﻿@page "/notes"
+﻿@page "/"
+@page "/notes"
 
 
 @inject BrowserStorageService BrowserStorage
@@ -33,7 +34,7 @@
     </div>
 
     <div class="col-md-4 bg-light border-start p-3">
-        <div class="d-grid gap-2">§
+        <div class="d-grid gap-2">
             <button class="btn btn-primary" @onclick="AddNewNote">
                 + Add Note
             </button>
@@ -70,7 +71,7 @@
         {
             // If no notes exist, create a default one and select it
             allNotes = new List<Note>();
-            var defaultNote = new Note { Title = "New Note", Content = "" };
+            var defaultNote = new Note { Title = "Note", Content = "" };
             allNotes.Add(defaultNote);
             selectedNote = defaultNote;
             await SaveNotesAsync(); // Save the new note to storage
