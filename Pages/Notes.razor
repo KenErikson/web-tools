@@ -33,9 +33,9 @@
     </div>
 
     <div class="col-md-4 bg-light border-start p-3">
-        <div class="d-grid gap-2">
+        <div class="d-grid gap-2">§
             <button class="btn btn-primary" @onclick="AddNewNote">
-                + New Note
+                + Add Note
             </button>
         </div>
         <hr />
@@ -86,7 +86,7 @@
     // --- Note Management ---
     private async Task AddNewNote()
     {
-        var newNote = new Note { Title = "New Note", Content = "" };
+        var newNote = new Note { Title = "Note", Content = "" };
         allNotes.Add(newNote);
         SelectNote(newNote);
         await SaveNotesAsync();
