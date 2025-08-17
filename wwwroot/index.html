@@ -26,6 +26,18 @@
         <a href="." class="reload">Reload</a>
         <span class="dismiss">🗙</span>
     </div>
+    <script>
+        (function () {
+          // Check if a redirect path was stored
+          var redirect = sessionStorage.getItem('redirect');
+          // Clear the stored path
+          sessionStorage.removeItem('redirect');
+          // If a path was stored, update the browser's history to that path
+          if (redirect && redirect != location.pathname) {
+            history.replaceState(null, null, redirect);
+          }
+        })();
+      </script>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="js/clipboard.js"></script> </body>
 </body>
